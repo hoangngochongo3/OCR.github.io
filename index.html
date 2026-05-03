@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OCR CCCD - Điền form tự động</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>🪪 OCR CCCD</h1>
+    <p>Tải ảnh Căn cước công dân — OCR tự động nhận diện và điền form</p>
+  </header>
+
+  <!-- Service account upload -->
+  <div class="card">
+    <div class="card-title">
+      🔑 Google Cloud Vision
+      <span class="badge">SERVICE ACCOUNT</span>
+    </div>
+    <p style="font-size:13px;color:var(--text-secondary);margin:4px 0 12px;">
+      Upload file JSON Service Account của bạn để xác thực. Key chỉ lưu trong bộ nhớ trình duyệt, không gửi đi đâu ngoài Google API.
+    </p>
+
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <label class="btn btn-outline" style="font-size:13px;padding:7px 14px;cursor:pointer;">
+        📂 Chọn file JSON
+        <input type="file" id="saKeyFile" accept=".json,application/json" style="display:none;" />
+      </label>
+      <button class="btn btn-outline" id="saKeyClear" style="font-size:13px;padding:7px 14px;display:none;">✕ Xóa key</button>
+      <span id="saKeyStatus" style="font-size:13px;color:var(--text-secondary);">⚠️ Chưa tải key</span>
+    </div>
+
+    <div style="margin-top:12px;">
+      <button class="btn btn-outline" id="testBtn" style="font-size:13px;padding:7px 14px;">🔍 Kiểm tra kết nối</button>
+      <span id="testResult" style="font-size:13px;margin-left:10px;"></span>
+    </div>
+  </div>
+
+  <!-- Upload -->
+  <div class="card">
+    <div class="card-title">📷 Tải ảnh CCCD</div>
+    <div class="upload-grid">
+      <div>
+        <p style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">MẶT TRƯỚC</p>
+        <div class="upload-box" id="frontBox">
+          <input type="file" id="frontFile" accept="image/*" />
+          <div class="upload-icon">🖼️</div>
+          <div class="upload-label">Nhấp hoặc kéo ảnh vào</div>
+          <div class="upload-hint">JPG, PNG, WEBP · Tối đa 10MB</div>
+          <img class="upload-preview" id="frontPreview" />
+        </div>
+      </div>
+      <div>
+        <p style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">MẶT SAU (tùy chọn)</p>
+        <div class="upload-box" id="backBox">
+          <input type="file" id="backFile" accept="image/*" />
+          <div class="upload-icon">🖼️</div>
+          <div class="upload-label">Nhấp hoặc kéo ảnh vào</div>
+          <div class="upload-hint">JPG, PNG, WEBP · Tùy chọn</div>
+          <img class="upload-preview" id="backPreview" />
+        </div>
+      </div>
+    </div>
+
+    <div class="ocr-actions">
+      <button class="btn btn-primary" id="ocrBtn">⚡ Nhận diện & Điền form</button>
+      <button class="btn btn-outline" id="clearAllBtn">🗑 Xóa tất cả</button>
+    </div>
+
+    <div class="status-bar" id="statusBar">
+      <div class="spinner" id="statusSpinner"></div>
+      <span id="statusText"></span>
+    </div>
+  </div>
+
+  <!-- Form -->
+  <div class="card">
+    <div class="card-title">📋 Thông tin trích xuất</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Số CCCD / CMND</label>
+        <input type="text" id="f_id" placeholder="012345678901" />
+      </div>
+      <div class="form-group">
+        <label>Họ và tên</label>
+        <input type="text" id="f_name" placeholder="NGUYỄN VĂN A" />
+      </div>
+      <div class="form-group">
+        <label>Ngày sinh</label>
+        <input type="text" id="f_dob" placeholder="01/01/1990" />
+      </div>
+      <div class="form-group">
+        <label>Giới tính</label>
+        <select id="f_gender">
+          <option value="">-- Chọn --</option>
+          <option value="Nam">Nam</option>
+          <option value="Nữ">Nữ</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Quốc tịch</label>
+        <input type="text" id="f_nationality" placeholder="Việt Nam" />
+      </div>
+      <div class="form-group">
+        <label>Dân tộc</label>
+        <input type="text" id="f_ethnicity" placeholder="Kinh" />
+      </div>
+      <div class="form-group full">
+        <label>Quê quán</label>
+        <input type="text" id="f_hometown" placeholder="Xã, Huyện, Tỉnh" />
+      </div>
+      <div class="form-group full">
+        <label>Nơi thường trú</label>
+        <textarea id="f_address" placeholder="Số nhà, Đường, Phường/Xã, Quận/Huyện, Tỉnh/TP"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Ngày hết hạn</label>
+        <input type="text" id="f_expiry" placeholder="01/01/2030" />
+      </div>
+      <div class="form-group">
+        <label>Ngày cấp</label>
+        <input type="text" id="f_issued" placeholder="01/01/2020" />
+      </div>
+      <div class="form-group full">
+        <label>Nơi cấp / Đặc điểm nhận dạng</label>
+        <input type="text" id="f_extra" placeholder="Cục Cảnh sát QLHC về TTXH" />
+      </div>
+    </div>
+
+    <div class="raw-section">
+      <button class="raw-toggle" id="rawToggleBtn">▶ Xem văn bản OCR thô</button>
+      <pre class="raw-content" id="rawJson"></pre>
+    </div>
+  </div>
+
+  <!-- BHYT Upload -->
+  <div class="card">
+    <div class="card-title">🏥 Tải ảnh Thẻ BHYT <span class="badge">BẢO HIỂM Y TẾ</span></div>
+    <div class="upload-grid">
+      <div>
+        <p style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">THẺ BHYT</p>
+        <div class="upload-box" id="bhytBox">
+          <input type="file" id="bhytFile" accept="image/*" />
+          <div class="upload-icon">🏥</div>
+          <div class="upload-label">Nhấp hoặc kéo ảnh vào</div>
+          <div class="upload-hint">JPG, PNG, WEBP · Tối đa 10MB</div>
+          <img class="upload-preview" id="bhytPreview" />
+        </div>
+      </div>
+    </div>
+
+    <div class="ocr-actions">
+      <button class="btn btn-primary" id="bhytBtn">⚡ Nhận diện BHYT</button>
+      <button class="btn btn-outline" id="clearBhytBtn">🗑 Xóa BHYT</button>
+    </div>
+
+    <div class="status-bar" id="bhytStatusBar">
+      <div class="spinner" id="bhytStatusSpinner"></div>
+      <span id="bhytStatusText"></span>
+    </div>
+  </div>
+
+  <!-- BHYT Form -->
+  <div class="card">
+    <div class="card-title">📋 Thông tin BHYT trích xuất</div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>Mã số BHYT</label>
+        <input type="text" id="b_id" placeholder="DN 4 79 791 101 31..." />
+      </div>
+      <div class="form-group">
+        <label>Họ và tên</label>
+        <input type="text" id="b_name" placeholder="NGUYỄN VĂN A" />
+      </div>
+      <div class="form-group">
+        <label>Ngày sinh</label>
+        <input type="text" id="b_dob" placeholder="01/01/1990" />
+      </div>
+      <div class="form-group">
+        <label>Giới tính</label>
+        <select id="b_gender">
+          <option value="">-- Chọn --</option>
+          <option value="Nam">Nam</option>
+          <option value="Nữ">Nữ</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label>Địa chỉ / Nơi làm việc</label>
+        <input type="text" id="b_address" placeholder="Công ty / Địa chỉ..." />
+      </div>
+      <div class="form-group">
+        <label>Nơi ĐK KCB ban đầu</label>
+        <input type="text" id="b_kcb" placeholder="Phòng khám / Bệnh viện..." />
+      </div>
+      <div class="form-group">
+        <label>Mã KCB</label>
+        <input type="text" id="b_kcb_code" placeholder="79 - 536" />
+      </div>
+      <div class="form-group">
+        <label>Giá trị sử dụng từ ngày</label>
+        <input type="text" id="b_valid_from" placeholder="01/01/2020" />
+      </div>
+      <div class="form-group">
+        <label>Đủ 5 năm liên tục từ</label>
+        <input type="text" id="b_5year" placeholder="01/06/2022" />
+      </div>
+    </div>
+
+    <div class="raw-section">
+      <button class="raw-toggle" id="bhytRawToggleBtn">▶ Xem văn bản OCR thô (BHYT)</button>
+      <pre class="raw-content" id="bhytRawJson"></pre>
+    </div>
+  </div>
+
+  <footer>Powered by Google Cloud Vision API · Dữ liệu không được lưu trữ · Xử lý hoàn toàn trên trình duyệt</footer>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
