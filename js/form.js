@@ -68,6 +68,20 @@ export function toggleBHYTRaw() {
   btn.textContent = (open ? '▼' : '▶') + ' Xem văn bản OCR thô (BHYT)';
 }
 
+export function toggleParsed() {
+  const el   = document.getElementById('parsedJson');
+  const btn  = document.getElementById('parsedToggleBtn');
+  const open = el.classList.toggle('show');
+  btn.textContent = (open ? '▼' : '▶') + ' Xem JSON trích xuất';
+}
+
+export function toggleBHYTParsed() {
+  const el   = document.getElementById('bhytParsedJson');
+  const btn  = document.getElementById('bhytParsedToggleBtn');
+  const open = el.classList.toggle('show');
+  btn.textContent = (open ? '▼' : '▶') + ' Xem JSON trích xuất (BHYT)';
+}
+
 // Resets CCCD images, form fields, and status bar
 export function clearAll() {
   ['front', 'back'].forEach(side => {
@@ -86,6 +100,9 @@ export function clearAll() {
 
   document.getElementById('rawJson').textContent = '';
   document.getElementById('rawJson').classList.remove('show');
+  document.getElementById('parsedJson').textContent = '';
+  document.getElementById('parsedJson').classList.remove('show');
+  document.getElementById('parsedToggleBtn').textContent = '▶ Xem JSON trích xuất';
   document.getElementById('statusBar').className = 'status-bar';
 }
 
@@ -105,5 +122,8 @@ export function clearBHYT() {
 
   document.getElementById('bhytRawJson').textContent = '';
   document.getElementById('bhytRawJson').classList.remove('show');
+  document.getElementById('bhytParsedJson').textContent = '';
+  document.getElementById('bhytParsedJson').classList.remove('show');
+  document.getElementById('bhytParsedToggleBtn').textContent = '▶ Xem JSON trích xuất (BHYT)';
   document.getElementById('bhytStatusBar').className = 'status-bar';
 }

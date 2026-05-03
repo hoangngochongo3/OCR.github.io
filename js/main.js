@@ -7,7 +7,8 @@ import { handleDrag, handleDragLeave, handleDrop,
 import { parseVisionText }                                  from './parser-cccd.js';
 import { parseBHYTText }                                    from './parser-bhyt.js';
 import { fillForm, fillBHYTForm, setStatus, setBHYTStatus,
-         toggleRaw, toggleBHYTRaw, clearAll, clearBHYT }   from './form.js';
+         toggleRaw, toggleBHYTRaw, toggleParsed, toggleBHYTParsed,
+         clearAll, clearBHYT }                              from './form.js';
 
 // ── CCCD OCR flow ─────────────────────────────────────────
 async function runOCR() {
@@ -32,6 +33,8 @@ async function runOCR() {
     document.getElementById('rawJson').textContent =
       frontText + (backText ? '\n\n--- MẶT SAU ---\n' + backText : '');
 
+    document.getElementById('parsedJson').textContent = JSON.stringify(parsed, null, 2);
+
     fillForm(parsed);
     const filled = Object.values(parsed).filter(v => v).length;
     setStatus('success', `✅ Nhận diện thành công — đã điền ${filled} trường`);
@@ -55,6 +58,7 @@ async function runBHYTOCR() {
 
     document.getElementById('bhytRawJson').textContent = text;
     const parsed = parseBHYTText(text);
+    document.getElementById('bhytParsedJson').textContent = JSON.stringify(parsed, null, 2);
     fillBHYTForm(parsed);
     const filled = Object.values(parsed).filter(v => v).length;
     setBHYTStatus('success', `✅ Nhận diện thành công — đã điền ${filled} trường`);
@@ -153,9 +157,11 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('ocrBtn').addEventListener('click', runOCR);
   document.getElementById('clearAllBtn').addEventListener('click', clearAll);
   document.getElementById('rawToggleBtn').addEventListener('click', toggleRaw);
+  document.getElementById('parsedToggleBtn').addEventListener('click', toggleParsed);
   document.getElementById('bhytBtn').addEventListener('click', runBHYTOCR);
   document.getElementById('clearBhytBtn').addEventListener('click', clearBHYT);
   document.getElementById('bhytRawToggleBtn').addEventListener('click', toggleBHYTRaw);
+  document.getElementById('bhytParsedToggleBtn').addEventListener('click', toggleBHYTParsed);
 
   setupDragDrop('front');
   setupDragDrop('back');
