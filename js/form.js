@@ -58,14 +58,14 @@ export function toggleRaw() {
   const el   = document.getElementById('rawJson');
   const btn  = document.getElementById('rawToggleBtn');
   const open = el.classList.toggle('show');
-  btn.textContent = (open ? '▼' : '▶') + ' Xem văn bản OCR thô';
+  btn.textContent = (open ? '▼' : '▶') + ' Xem phản hồi thô từ Gemini';
 }
 
 export function toggleBHYTRaw() {
   const el   = document.getElementById('bhytRawJson');
   const btn  = document.getElementById('bhytRawToggleBtn');
   const open = el.classList.toggle('show');
-  btn.textContent = (open ? '▼' : '▶') + ' Xem văn bản OCR thô (BHYT)';
+  btn.textContent = (open ? '▼' : '▶') + ' Xem phản hồi thô từ Gemini (BHYT)';
 }
 
 export function toggleParsed() {
@@ -102,6 +102,7 @@ export function clearAll() {
   document.getElementById('rawJson').classList.remove('show');
   document.getElementById('parsedJson').textContent = '';
   document.getElementById('parsedJson').classList.remove('show');
+  document.getElementById('rawToggleBtn').textContent    = '▶ Xem phản hồi thô từ Gemini';
   document.getElementById('parsedToggleBtn').textContent = '▶ Xem JSON trích xuất';
   document.getElementById('statusBar').className = 'status-bar';
 }
@@ -124,6 +125,7 @@ export function clearBHYT() {
   document.getElementById('bhytRawJson').classList.remove('show');
   document.getElementById('bhytParsedJson').textContent = '';
   document.getElementById('bhytParsedJson').classList.remove('show');
+  document.getElementById('bhytRawToggleBtn').textContent    = '▶ Xem phản hồi thô từ Gemini (BHYT)';
   document.getElementById('bhytParsedToggleBtn').textContent = '▶ Xem JSON trích xuất (BHYT)';
   document.getElementById('bhytStatusBar').className = 'status-bar';
 }

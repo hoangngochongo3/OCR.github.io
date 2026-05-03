@@ -30,7 +30,7 @@ export async function getAccessToken() {
   const header  = b64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
   const payload = b64url(JSON.stringify({
     iss:   SA.client_email,
-    scope: 'https://www.googleapis.com/auth/cloud-vision',
+    scope: 'https://www.googleapis.com/auth/cloud-platform',
     aud:   'https://oauth2.googleapis.com/token',
     iat:   now,
     exp:   now + 3600,

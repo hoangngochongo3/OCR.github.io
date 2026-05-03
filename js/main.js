@@ -1,11 +1,9 @@
 // Application entry point — orchestrates OCR flow and wires up all DOM event listeners
 import { imageState, saState }                              from './state.js';
 import { getAccessToken, resetTokenCache }                  from './auth.js';
-import { callVisionAPI }                                    from './api.js';
+import { callGeminiOCR }                                    from './api.js';
 import { handleDrag, handleDragLeave, handleDrop,
          previewImage }                                     from './input.js';
-import { parseVisionText }                                  from './parser-cccd.js';
-import { parseBHYTText }                                    from './parser-bhyt.js';
 import { fillForm, fillBHYTForm, setStatus, setBHYTStatus,
          toggleRaw, toggleBHYTRaw, toggleParsed, toggleBHYTParsed,
          clearAll, clearBHYT }                              from './form.js';
@@ -14,25 +12,17 @@ import { fillForm, fillBHYTForm, setStatus, setBHYTStatus,
 async function runOCR() {
   if (!imageState.frontB64) { alert('Vui lòng tải ảnh mặt trước CCCD.'); return; }
 
-  setStatus('loading', 'Đang xác thực và gửi ảnh đến Cloud Vision API…');
+  setStatus('loading', 'Đang gửi ảnh đến Gemini 2.5 Flash…');
   document.getElementById('ocrBtn').disabled = true;
 
   try {
-    const frontText = await callVisionAPI(imageState.frontB64);
+    const { raw, parsed } = await callGeminiOCR(
+      'cccd',
+      imageState.frontB64, imageState.frontMime,
+      imageState.backB64,  imageState.backMime,
+    );
 
-    let backText = '';
-    if (imageState.backB64) {
-      setStatus('loading', 'Đang xử lý mặt sau…');
-      backText = await callVisionAPI(imageState.backB64);
-    }
-
-    if (!frontText) throw new Error('Cloud Vision không nhận ra văn bản trong ảnh. Thử ảnh rõ hơn.');
-
-    const parsed = parseVisionText(frontText, backText);
-
-    document.getElementById('rawJson').textContent =
-      frontText + (backText ? '\n\n--- MẶT SAU ---\n' + backText : '');
-
+    document.getElementById('rawJson').textContent    = raw;
     document.getElementById('parsedJson').textContent = JSON.stringify(parsed, null, 2);
 
     fillForm(parsed);
@@ -49,16 +39,18 @@ async function runOCR() {
 async function runBHYTOCR() {
   if (!imageState.bhytB64) { alert('Vui lòng tải ảnh thẻ BHYT.'); return; }
 
-  setBHYTStatus('loading', 'Đang gửi ảnh đến Cloud Vision API…');
+  setBHYTStatus('loading', 'Đang gửi ảnh đến Gemini 2.5 Flash…');
   document.getElementById('bhytBtn').disabled = true;
 
   try {
-    const text = await callVisionAPI(imageState.bhytB64);
-    if (!text) throw new Error('Không nhận ra văn bản trong ảnh. Thử ảnh rõ hơn.');
+    const { raw, parsed } = await callGeminiOCR(
+      'bhyt',
+      imageState.bhytB64, imageState.bhytMime,
+    );
 
-    document.getElementById('bhytRawJson').textContent = text;
-    const parsed = parseBHYTText(text);
+    document.getElementById('bhytRawJson').textContent    = raw;
     document.getElementById('bhytParsedJson').textContent = JSON.stringify(parsed, null, 2);
+
     fillBHYTForm(parsed);
     const filled = Object.values(parsed).filter(v => v).length;
     setBHYTStatus('success', `✅ Nhận diện thành công — đã điền ${filled} trường`);
@@ -75,24 +67,11 @@ async function testConnection() {
   el.textContent = '⏳ Đang kiểm tra...';
   el.style.color = '#1a73e8';
   try {
-    const token = await getAccessToken();
-    // Send a 1×1 transparent PNG — enough to verify token validity and Vision API access
-    const tiny = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwADhQGAWjR9awAAAABJRU5ErkJggg==';
-    const res = await fetch('https://vision.googleapis.com/v1/images:annotate', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body:    JSON.stringify({ requests: [{ image: { content: tiny }, features: [{ type: 'DOCUMENT_TEXT_DETECTION' }] }] }),
-    });
-    if (res.ok || res.status === 400) {
-      el.textContent = '✅ Kết nối thành công — Cloud Vision hoạt động';
-      el.style.color = '#34a853';
-    } else {
-      const data = await res.json().catch(() => ({}));
-      el.textContent = '❌ ' + (data?.error?.message || `HTTP ${res.status}`);
-      el.style.color = '#ea4335';
-    }
+    await getAccessToken();
+    el.textContent = '✅ Xác thực thành công — Service Account hợp lệ';
+    el.style.color = '#34a853';
   } catch (e) {
-    el.textContent = '❌ Lỗi: ' + e.message;
+    el.textContent = '❌ ' + e.message;
     el.style.color = '#ea4335';
   }
 }
@@ -111,12 +90,12 @@ function setupSAKeyUpload() {
     reader.onload = ev => {
       try {
         const json = JSON.parse(ev.target.result);
-        if (!json.client_email || !json.private_key) {
-          statusEl.textContent = '❌ File không hợp lệ (thiếu client_email hoặc private_key)';
+        if (!json.client_email || !json.private_key || !json.project_id) {
+          statusEl.textContent = '❌ File không hợp lệ (thiếu client_email, private_key hoặc project_id)';
           statusEl.style.color = '#ea4335';
           return;
         }
-        saState.sa = { client_email: json.client_email, private_key: json.private_key };
+        saState.sa = { client_email: json.client_email, private_key: json.private_key, project_id: json.project_id };
         resetTokenCache();
         statusEl.textContent = `✅ ${json.client_email}`;
         statusEl.style.color = '#34a853';
